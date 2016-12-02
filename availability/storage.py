@@ -82,3 +82,21 @@ def ensure_es_index_exists(index):
             "Something went wrong with Elasticsearch: %s" % str(e))
         return None
     return es
+
+
+def es_search(region, body):
+    """Search availability by region.
+
+    :param region: str region name
+    :param body: dict ES query
+    :returns: dict search results
+    """
+    es = get_elasticsearch()
+    try:
+        index = "ms_availability_%s" % region
+        return es.search(index=index, doc_type="service_availability",
+                         body=body)
+    except elasticsearch.exceptions.ElasticsearchException as e:
+        LOG.error("Search query has failed:\nIndex: %s\nBody: %s\nError: %s"
+                  % (index, body, str(e)))
+        return None

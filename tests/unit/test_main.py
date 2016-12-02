@@ -40,4 +40,7 @@ class MainTestCase(test.TestCase):
     def test_api_map(self):
         code, resp = self.get("/")
         self.assertEqual(200, code)
-        self.assertEqual([], resp)
+        self.assertEqual(2, len(resp))
+        self.assertIn({"endpoint": u"availability.get_availability",
+                       "methods": ["GET", "HEAD", "OPTIONS"],
+                       "uri": "/api/v1/availability/<period>"}, resp)
