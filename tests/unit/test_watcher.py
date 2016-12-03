@@ -29,7 +29,7 @@ class WatcherTestCase(test.TestCase):
         mock_get.side_effect = ValueError
         watcher.check_availability({"url": "http://foo/"}, mock_queue)
         mock_queue.put.assert_called_once_with({"url": "http://foo/",
-                                                "status": False})
+                                                "status": 0})
         mock_get.reset_mock()
         mock_queue.put.reset_mock()
         mock_get.side_effect = None
@@ -41,7 +41,7 @@ class WatcherTestCase(test.TestCase):
             "http://foo/", timeout=(watcher.SERVICE_CONN_TIMEOUT,
                                     watcher.SERVICE_READ_TIMEOUT))
         mock_queue.put.assert_called_once_with({"url": "http://foo/",
-                                                "status": True})
+                                                "status": 1})
 
         mock_queue.reset_mock()
         mock_get.side_effect = requests.exceptions.RequestException
@@ -49,37 +49,37 @@ class WatcherTestCase(test.TestCase):
                                             mock_queue)
         self.assertIsNone(result)
         mock_queue.put.assert_called_once_with({"url": "http://foo/",
-                                                "status": False})
+                                                "status": 0})
 
-    @mock.patch("availability.watcher.elasticsearch.Elasticsearch")
+    @mock.patch("availability.watcher.storage")
     @mock.patch("availability.watcher.uuid")
     @mock.patch("availability.watcher.json.dumps")
     @mock.patch("availability.watcher.config.get_config")
     @mock.patch("availability.watcher.LOG")
     def test_save_availability(self, mock_log, mock_get_config, mock_dumps,
-                               mock_uuid, mock_elastic):
-
-        backend = {"type": "unexpected_type",
-                   "connection": {"host": "foo_host", "port": 42}}
+                               mock_uuid, mock_storage):
+        backend = {"type": "elastic", "connection": "foo_connection"}
         mock_get_config.return_value = {"backend": backend}
         mock_queue = mock.Mock()
-        mock_queue.get.side_effect = [{"region": "foo"}, {"region": "bar"},
-                                      watcher.queue.Empty]
-        self.assertRaises(NotImplementedError,
-                          watcher.save_availability, mock_queue)
+        queue_side_effect = [{"region": "foo"}, {"region": "bar"},
+                             watcher.queue.Empty]
+        mock_queue.get.side_effect = queue_side_effect
 
-        backend = {"type": "elastic",
-                   "connection": {"host": "foo_host", "port": 42}}
+        backend = {"type": "elastic", "connection": "foo_connection"}
         mock_get_config.return_value = {"backend": backend}
         mock_dumps.side_effect = ["value-1", "value-2", "value-3", "value-4"]
         mock_es = mock.Mock()
-        mock_elastic.return_value = mock_es
+        mock_storage.get_elasticsearch.return_value = mock_es
         mock_uuid.uuid1.side_effect = ["uuid-1", "uuid-2"]
 
-        watcher.save_availability(mock_queue)
+        self.assertIsNone(watcher.save_availability(mock_queue))
         mock_es.bulk.assert_called_once_with(
             body="value-1\nvalue-2\nvalue-3\nvalue-4\n")
-        mock_elastic.assert_called_once_with([backend["connection"]])
+        mock_storage.get_elasticsearch.assert_called_once_with()
+        self.assertEqual(
+            [mock.call("ms_availability_foo"),
+             mock.call("ms_availability_bar")],
+            mock_storage.ensure_es_index_exists.mock_calls)
         self.assertEqual([mock.call(True, timeout=3)] * 3,
                          mock_queue.get.mock_calls)
         calls = [
@@ -92,6 +92,13 @@ class WatcherTestCase(test.TestCase):
                                  "_index": "ms_availability_bar"}}, indent=0),
             mock.call({"region": "bar"}, indent=0)]
         self.assertEqual(calls, mock_dumps.mock_calls)
+
+        mock_dumps.side_effect = ["value-1", "value-2", "value-3", "value-4"]
+        mock_uuid.uuid1.side_effect = ["uuid-1", "uuid-2"]
+        mock_queue.get.side_effect = queue_side_effect
+        mock_es.bulk.side_effect = (
+            watcher.es_exceptions.ElasticsearchException)
+        self.assertIsNone(watcher.save_availability(mock_queue))
 
     @mock.patch("availability.watcher.dt")
     @mock.patch("availability.watcher.config.get_config")
@@ -125,36 +132,54 @@ class WatcherTestCase(test.TestCase):
         self.assertEqual(calls, mock_thread.mock_calls)
 
     @mock.patch("availability.watcher.schedule")
+    @mock.patch("availability.watcher.storage")
     @mock.patch("availability.watcher.watch_services")
     @mock.patch("availability.watcher.config.get_config")
     @mock.patch("availability.watcher.time")
     @mock.patch("availability.watcher.LOG")
     def test_main(self, mock_log, mock_time, mock_get_config,
-                  mock_watch_services, mock_schedule):
+                  mock_watch_services, mock_storage, mock_schedule):
         class BreakInfinityCicle(Exception):
             pass
 
         run_effect = [None, None, None, BreakInfinityCicle]
         mock_schedule.run_pending.side_effect = run_effect
+
         mock_get_config.return_value = {}
         self.assertEqual(1, watcher.main())
 
         mock_get_config.return_value = {"regions": []}
         self.assertEqual(1, watcher.main())
 
-        with mock.patch("availability.watcher", "SERVICE_CONN_TIMEOUT", 30):
-            with mock.patch("availability.watcher",
-                            "SERVICE_READ_TIMEOUT", 31):
-                # NOTE(amaretskiy): (31 + 30) > 60
-                self.assertEqual(1, watcher.main())
-
         mock_get_config.return_value = {"regions": ["foo_region"]}
+        # NOTE(amaretskiy):
+        #   SERVICE_CONN_TIMEOUT + SERVICE_READ_TIMEOUT > 10
+        self.assertEqual(1, watcher.main(10))
+
+        backend = {"type": "unexpected", "connection": "foo_conn"}
+        mock_get_config.return_value = {"regions": ["foo_region"],
+                                        "backend": backend}
+        self.assertEqual(1, watcher.main())
+
+        backend = {"type": "elastic", "connection": "foo_conn"}
+        mock_get_config.return_value = {"regions": ["foo_region"],
+                                        "backend": backend}
+        mock_storage.get_elasticsearch.return_value = None
+        self.assertEqual(1, watcher.main())
+        mock_storage.get_elasticsearch.assert_called_once_with(
+            check_availability=True)
+
+        mock_storage.reset_mock()
+        mock_storage.get_elasticsearch.return_value = mock.Mock()
+
         self.assertRaises(BreakInfinityCicle, watcher.main)
         self.assertEqual([mock.call(1)] * 4, mock_time.sleep.mock_calls)
         mock_schedule.every.assert_called_once_with(60)
+        mock_storage.get_elasticsearch.assert_called_once_with(
+            check_availability=True)
 
         mock_get_config.return_value = {"regions": ["foo_region"],
-                                        "period": 42}
+                                        "backend": backend, "period": 42}
         mock_schedule.reset_mock()
         mock_schedule.run_pending.side_effect = run_effect
         mock_time.reset_mock()

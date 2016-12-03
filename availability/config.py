@@ -30,7 +30,7 @@ DEFAULT_CONF = {
     },
     "backend": {
         "type": "elastic",
-        "connection": {"host": "127.0.0.1", "port": 9200}
+        "connection": [{"host": "127.0.0.1", "port": 9200}]
     },
     "regions": []
 }
@@ -52,12 +52,16 @@ CONF_SCHEMA = {
             "properties": {
                 "type": {"type": "string"},
                 "connection": {
-                    "type": "object",
-                    "properties": {
-                        "host": {"type": "string"},
-                        "port": {"type": "integer"}
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "host": {"type": "string"},
+                            "port": {"type": "integer"}
+                        },
+                        "required": ["host"]
                     },
-                    "required": ["host"]
+                    "minItems": 1
                 }
             },
             "required": ["type", "connection"]

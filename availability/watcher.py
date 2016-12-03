@@ -21,12 +21,13 @@ import threading
 import time
 import uuid
 
-import elasticsearch
+from elasticsearch import exceptions as es_exceptions
 import queue
 import requests
 import schedule
 
 from availability import config
+from availability import storage
 
 
 SERVICE_CONN_TIMEOUT = config.get_config().get("connection_timeout", 1)
@@ -41,15 +42,14 @@ def check_availability(data, results_queue):
 
     :param data: dict that represents service query data
     :param results_queue: Queue for results
+    :rtype: None
     """
     try:
         requests.get(data["url"], timeout=(SERVICE_CONN_TIMEOUT,
                                            SERVICE_READ_TIMEOUT))
-        data["status"] = True
-    except requests.exceptions.RequestException:
-        data["status"] = False
+        data["status"] = 1
     except Exception as e:
-        data["status"] = False
+        data["status"] = 0
         LOG.warning("Something weng wrong while checking service %(name)s "
                     "by url %(url)s: %(exn)s" % {"name": data.get("name"),
                                                  "url": data.get("url"),
@@ -61,17 +61,11 @@ def save_availability(results_queue):
     """Send availability data to storage backend.
 
     :param results_queue: queue.Queue which provides data to save
+    :rtype: None
     """
-    backend = config.get_config().get("backend")
-    if backend["type"] == "elastic":
-        if not backend["connection"]:
-            LOG.error("Elastic is not configured")
-            return
-    else:
-        raise NotImplementedError("Unexpected backend: %(type)s" % backend)
-
     results = []
     timeout = 3
+
     while True:
         try:
             data = results_queue.get(True, timeout=timeout)
@@ -80,21 +74,27 @@ def save_availability(results_queue):
         results.append(data)
 
     body = []
+    indices = set()
     for data in results:
-        metadata = {"index": {"_index": "ms_availability_%(region)s" % data,
+        index = "ms_availability_%(region)s" % data
+        metadata = {"index": {"_index": index,
                               "_type": "service_availability",
                               "_id": str(uuid.uuid1())}}
         body.append(json.dumps(metadata, indent=0).replace("\n", ""))
         body.append("\n")
         body.append(json.dumps(data, indent=0).replace("\n", ""))
         body.append("\n")
+        if index not in indices:
+            storage.ensure_es_index_exists(index)
+            indices.add(index)
     body = "".join(body)
 
-    es = elasticsearch.Elasticsearch([backend["connection"]])
+    es = storage.get_elasticsearch()
+
     LOG.debug("Saving availability:\n%s" % body)
     try:
         es.bulk(body=body)
-    except Exception as e:
+    except es_exceptions.ElasticsearchException as e:
         LOG.error("Failed to save availability to Elastic:\n"
                   "Body: %s\nError: %s" % (body, e))
 
@@ -139,6 +139,15 @@ def main(period=None):
     if SERVICE_CONN_TIMEOUT + SERVICE_READ_TIMEOUT > period:
         LOG.error("Period can not be lesser than timeout, "
                   "otherwice threads could crowd round.")
+        return 1
+
+    backend = config.get_config().get("backend")
+    if backend["type"] != "elastic":
+        LOG.error("Unexpected backend: %(type)s" % backend)
+        return 1
+
+    if not storage.get_elasticsearch(check_availability=True):
+        LOG.error("Failed to set up Elasticsearch")
         return 1
 
     LOG.info("Start watching with period %s seconds" % period)

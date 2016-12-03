@@ -6,7 +6,7 @@
     },
     "backend": {
         "type": "elastic",
-        "connection": {"host": "127.0.0.1", "port": 9200}
+        "connection": [{"host": "127.0.0.1", "port": 9200}]
     },
     "regions": [
         {
@@ -28,6 +28,6 @@
     "connection_timeout": 1,
     "read_timeout": 10,
     "logging": {
-        "level": "ERROR"
+        "level": "INFO"
     }
 }
