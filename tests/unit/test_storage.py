@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import elasticsearch
 import mock
 
 from availability import storage
@@ -32,8 +33,8 @@ class StorageTestCase(test.TestCase):
         mock_get_elastic.return_value = mock_es
         mock_es.indices.exists.side_effect = (
             storage.elasticsearch.exceptions.ElasticsearchException)
-        self.assertIsNone(
-            storage.ensure_es_index_exists("foo_index"))
+        self.assertRaises(elasticsearch.exceptions.ElasticsearchException,
+                          storage.ensure_es_index_exists, "foo_index")
 
         mock_es.indices.exists.side_effect = None
         mock_es.indices.exists.return_value = False
@@ -50,7 +51,7 @@ class StorageTestCase(test.TestCase):
                         "status": {"type": "integer"},
                         "region": {"type": "keyword"},
                         "name": {"type": "keyword"},
-                        "time": {"type": "date"}}}},
+                        "timestamp": {"type": "date"}}}},
             "settings": {"number_of_shards": storage.NUMBER_OF_SHARDS}}
         mock_dumps.assert_called_once_with(mapping)
         mock_es.indices.create.assert_called_once_with(

@@ -31,7 +31,6 @@ def get_elasticsearch(check_availability=False):
     :param check_availability: check if nodes are available
     :returns: Elasticsearch or None on failure
     :rtype: elasticsearch.Elasticsearch
-    :rtype: None
     """
     nodes = config.get_config()["backend"]["connection"]
     try:
@@ -42,7 +41,7 @@ def get_elasticsearch(check_availability=False):
         LOG.warning(
             "Failed to query Elasticsearch nodes %s: %s"
             % (nodes, str(e)))
-        return None
+        raise
     return es
 
 
@@ -52,7 +51,6 @@ def ensure_es_index_exists(index):
     :param index: index name
     :returns: Elasticsearch or None on failure
     :rtype: elasticsearch.Elasticsearch
-    :rtype: None
     """
     es = get_elasticsearch()
     try:
@@ -68,7 +66,7 @@ def ensure_es_index_exists(index):
                             "name": {"type": "keyword"},
                             "region": {"type": "keyword"},
                             "url": {"type": "text"},
-                            "time": {"type": "date"},
+                            "timestamp": {"type": "date"},
                             "status": {"type": "integer"}
                         }
                     }
@@ -80,5 +78,23 @@ def ensure_es_index_exists(index):
     except elasticsearch.exceptions.ElasticsearchException as e:
         LOG.warning(
             "Something went wrong with Elasticsearch: %s" % str(e))
-        return None
+        raise
     return es
+
+
+def es_search(region, body):
+    """Search availability by region.
+
+    :param region: str region name
+    :param body: dict ES query
+    :returns: dict search results
+    """
+    es = get_elasticsearch()
+    try:
+        index = "ms_availability_%s" % region
+        return es.search(index=index, doc_type="service_availability",
+                         body=body)
+    except elasticsearch.exceptions.ElasticsearchException as e:
+        LOG.error("Search query has failed:\nIndex: %s\nBody: %s\nError: %s"
+                  % (index, body, str(e)))
+        raise

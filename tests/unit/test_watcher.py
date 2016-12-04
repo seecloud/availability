@@ -120,11 +120,13 @@ class WatcherTestCase(test.TestCase):
         mock_get_config.assert_called_once_with()
         calls = [
             mock.call(args=({"url": "a_url", "region": "a_reg",
-                             "name": "a_svc", "time": "time-1"}, mock_queue),
+                             "name": "a_svc", "timestamp": "time-1"},
+                            mock_queue),
                       target=watcher.check_availability),
             mock.call().start(),
             mock.call(args=({"url": "b_url", "region": "b_reg",
-                             "name": "b_svc", "time": "time-2"}, mock_queue),
+                             "name": "b_svc", "timestamp": "time-2"},
+                            mock_queue),
                       target=watcher.check_availability),
             mock.call().start(),
             mock.call(args=(mock_queue,), target=watcher.save_availability),

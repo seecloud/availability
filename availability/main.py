@@ -16,6 +16,7 @@
 import flask
 from flask_helpers import routing
 
+from availability.api.v1 import api
 from availability import config
 
 
@@ -23,12 +24,16 @@ app = flask.Flask(__name__, static_folder=None)
 app.config.update(config.get_config()["flask"])
 
 
-app = routing.add_routing_map(app, html_uri=None, json_uri="/")
-
-
 @app.errorhandler(404)
 def not_found(error):
     return flask.jsonify({"error": "Not Found"}), 404
+
+
+for url_prefix, blueprint in api.get_blueprints():
+    app.register_blueprint(blueprint, url_prefix="/api/v1%s" % url_prefix)
+
+
+app = routing.add_routing_map(app, html_uri=None, json_uri="/")
 
 
 def main():

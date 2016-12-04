@@ -112,7 +112,7 @@ def watch_services():
                 "url": service["url"],
                 "name": service["name"],
                 "region": region["name"],
-                "time": dt.datetime.now().isoformat()
+                "timestamp": dt.datetime.now().isoformat()
             }
 
             thr = threading.Thread(target=check_availability,
@@ -138,7 +138,7 @@ def main(period=None):
 
     if SERVICE_CONN_TIMEOUT + SERVICE_READ_TIMEOUT > period:
         LOG.error("Period can not be lesser than timeout, "
-                  "otherwice threads could crowd round.")
+                  "otherwise threads could crowd round.")
         return 1
 
     backend = config.get_config().get("backend")
