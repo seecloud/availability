@@ -67,3 +67,6 @@ class ConfigTestCase(test.TestCase):
     @mock.patch("availability.config.CONF", new=42)
     def test_get_config_cached(self):
         self.assertEqual(42, config.get_config())
+
+    def test_validate_default_config(self):
+        jsonschema.validate(config.DEFAULT_CONF, config.CONF_SCHEMA)
