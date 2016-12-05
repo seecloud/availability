@@ -21,36 +21,49 @@ from tests.unit import test
 
 class ConfigTestCase(test.TestCase):
 
-    @mock.patch("availability.config.json")
-    @mock.patch("availability.config.os.environ")
-    @mock.patch("availability.config.jsonschema.validate")
+    @mock.patch("availability.config.CONF", new=None)
+    @mock.patch("availability.config.os.environ.get")
     @mock.patch("availability.config.open", create=True)
-    def test_get_config(self, mock_open, mock_validate, mock_environ,
-                        mock_json):
-        def reset_mocks():
-            for m in (mock_open, mock_validate, mock_environ, mock_json):
-                m.reset_mock()
-
-        config.CONF = None
-        mock_json.load.return_value = {"foo": 42, "bar": "spam"}
-        mock_environ.get.return_value = "foo_path"
+    @mock.patch("availability.config.json.load")
+    @mock.patch("availability.config.jsonschema.validate")
+    def test_get_config(self, mock_validate, mock_load, mock_open, mock_get):
+        mock_get.return_value = "foo_path"
+        mock_load.return_value = {"foo": 42, "bar": "spam"}
         mock_open.return_value = "foo_stream"
 
         cfg = config.get_config()
+
         self.assertEqual({"foo": 42, "bar": "spam"}, cfg)
-        mock_environ.get.assert_called_once_with(
+        mock_get.assert_called_once_with(
             "AVAILABILITY_CONF", "/etc/availability/config.json")
         mock_open.assert_called_once_with("foo_path")
-        mock_json.load.assert_called_once_with("foo_stream")
+        mock_load.assert_called_once_with("foo_stream")
         mock_validate.assert_called_once_with({"foo": 42, "bar": "spam"},
                                               config.CONF_SCHEMA)
 
-        reset_mocks()
-        config.CONF = None
+    @mock.patch("availability.config.CONF", new=None)
+    @mock.patch("availability.config.os.environ.get")
+    @mock.patch("availability.config.open", create=True)
+    @mock.patch("availability.config.json.load")
+    @mock.patch("availability.config.jsonschema.validate")
+    def test_get_config_open_error(
+            self, mock_validate, mock_load, mock_open, mock_get):
         mock_open.side_effect = IOError
         cfg = config.get_config()
         self.assertEqual(config.DEFAULT_CONF, cfg)
 
+    @mock.patch("availability.config.CONF", new=None)
+    @mock.patch("availability.config.os.environ.get")
+    @mock.patch("availability.config.open", create=True)
+    @mock.patch("availability.config.json.load")
+    @mock.patch("availability.config.jsonschema.validate")
+    def test_get_config_validation_error(
+            self, mock_validate, mock_load, mock_open, mock_get):
+        validation_exc = jsonschema.exceptions.ValidationError
+        mock_validate.side_effect = validation_exc(1)
+
+        self.assertRaises(validation_exc, config.get_config)
+
+    @mock.patch("availability.config.CONF", new=42)
     def test_get_config_cached(self):
-        config.CONF = 42
         self.assertEqual(42, config.get_config())
