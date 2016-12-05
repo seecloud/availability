@@ -17,6 +17,7 @@ import flask
 from flask_helpers import routing
 
 from availability.api.v1 import api
+from availability.api.v1 import regions
 from availability import config
 
 
@@ -29,8 +30,9 @@ def not_found(error):
     return flask.jsonify({"error": "Not Found"}), 404
 
 
-for url_prefix, blueprint in api.get_blueprints():
-    app.register_blueprint(blueprint, url_prefix="/api/v1%s" % url_prefix)
+for bp in [api, regions]:
+    for url_prefix, blueprint in bp.get_blueprints():
+        app.register_blueprint(blueprint, url_prefix="/api/v1%s" % url_prefix)
 
 
 app = routing.add_routing_map(app, html_uri=None, json_uri="/")
