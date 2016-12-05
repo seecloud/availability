@@ -39,7 +39,7 @@ class ConfigTestCase(test.TestCase):
         cfg = config.get_config()
         self.assertEqual({"foo": 42, "bar": "spam"}, cfg)
         mock_environ.get.assert_called_once_with(
-            "AVAILABILITY_CONF", "/etc/oss/availability/config.json")
+            "AVAILABILITY_CONF", "/etc/availability/config.json")
         mock_open.assert_called_once_with("foo_path")
         mock_json.load.assert_called_once_with("foo_stream")
         mock_validate.assert_called_once_with({"foo": 42, "bar": "spam"},
