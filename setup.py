@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from distutils.core import setup
+from setuptools import setup
 
 setup(name="availability",
       version="0.1",
@@ -8,4 +8,10 @@ setup(name="availability",
       url="https://github.com/seecloud/availability",
       author="<name>",
       author_email="<name>@mirantis.com",
-      packages=["availability"])
+      packages=["availability"],
+      entry_points={
+          "console_scripts": [
+              "availability-watcher = availability.watcher:main",
+              "availability-api = availability.main:main",
+          ],
+      })
