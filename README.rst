@@ -112,3 +112,32 @@ logging
 Logging configuration:
 
 * *level* - set specific logging level
+
+Build Docker Image
+~~~~~~~~~~~~~~~~~~
+
+To build the image run the following command:
+
+.. code-block:: sh
+
+    docker build -t availability:latest .
+
+Run Docker Containers
+~~~~~~~~~~~~~~~~~~~~~
+
+Edit configuration file in-place in the repository:
+
+.. code-block:: sh
+
+    cd ~/availability/
+    cp etc/sample_config.json etc/config.json
+    vim etc/config.json
+
+Then run two separate containers with applications:
+
+    docker run -d --name avail-watcher -v $PWD/etc:/etc/availability availability availability-watcher
+    docker run -d --name avail-api -v $PWD/etc:/etc/availability -p 5010:5000 availability ./entrypoint-api.sh
+
+Or one all-in-one:
+
+    docker run -d --name avail -v $PWD/etc:/etc/availability -p 5010:5000 availability ./entrypoint-all.sh
