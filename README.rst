@@ -38,7 +38,7 @@ Here is a simple example:
       },
       "backend": {
           "type": "elastic",
-          "connection": {"host": "127.0.0.1", "port": 9200}
+          "connection": [{"host": "127.0.0.1", "port": 9200}]
       },
       "period": 60,
       "regions": [
@@ -75,8 +75,9 @@ The only extra options are *HOST* and *PORT*.
 backend
 ~~~~~~~
 
-Type if backend (currently only "elastic" is supported).
-Connection to backend (host and port of `Elasticsearch <https://github.com/elastic/elasticsearch>`_)
+Type of backend (currently only "elastic" is supported).
+Connection to backend (a list of dicts with host and port keys of
+`Elasticsearch <https://github.com/elastic/elasticsearch>`_)
 
 period
 ~~~~~~
