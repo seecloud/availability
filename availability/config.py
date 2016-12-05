@@ -110,7 +110,7 @@ def get_config():
     global CONF
     if not CONF:
         path = os.environ.get("AVAILABILITY_CONF",
-                              "/etc/oss/availability/config.json")
+                              "/etc/availability/config.json")
         try:
             cfg = json.load(open(path))
             logging.info("Config is '%s'" % path)
