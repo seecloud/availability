@@ -1,0 +1,29 @@
+dsl_version: 0.1.0
+service:
+  name: availability-api
+  ports:
+    - {{ availability.port }}
+  containers:
+    - name: availability-api
+      image: availability
+      probes:
+        readiness:
+          type: "httpGet"
+          port: {{ availability.port.cont }}
+          path: "/"
+        liveness:
+          command: "true"
+          type: "exec"
+      daemon:
+        command: gunicorn
+                 --name availability-api
+                 --workers {{ availability.wsgi.workers }}
+                 --bind 0.0.0.0:{{ availability.port.cont }}
+                 availability.main:app
+        files:
+          - availability.conf
+
+files:
+  availability.conf:
+    path: /etc/availability/config.json
+    content: availability.conf.j2
