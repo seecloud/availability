@@ -112,11 +112,14 @@ def get_config():
         path = os.environ.get("AVAILABILITY_CONF",
                               "/etc/availability/config.json")
         try:
-            cfg = json.load(open(path))
+            config = json.load(open(path))
             logging.info("Config is '%s'" % path)
-            jsonschema.validate(cfg, CONF_SCHEMA)
-            CONF = cfg
-        except (IOError, jsonschema.exceptions.ValidationError) as e:
-            logging.warning("Failed to load config from '%s': %s" % (path, e))
+            jsonschema.validate(config, CONF_SCHEMA)
+            CONF = config
+        except IOError as exc:
+            logging.warning("Failed to load config from '%s': %s", path, exc)
             CONF = DEFAULT_CONF
+        except jsonschema.exceptions.ValidationError as exc:
+            logging.error("Configuration file %s is not valid: %s", path, exc)
+            raise
     return CONF
