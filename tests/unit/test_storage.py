@@ -62,16 +62,15 @@ class StorageTestCase(test.TestCase):
     @mock.patch("availability.storage.LOG")
     def test_get_elasticsearch(self, mock_log, mock_config, mock_elastic):
         mock_es = mock.Mock()
-        mock_es.indices.exists.side_effect = ValueError
         mock_elastic.return_value = mock_es
         mock_config.get_config.return_value = (
             {"backend": {"connection": "nodes"}})
-        self.assertFalse(mock_es.info.called)
         self.assertEqual(mock_es, storage.get_elasticsearch())
+        self.assertFalse(mock_es.info.called)
 
-        mock_es.indices.exists.side_effect = None
         mock_elastic.reset_mock()
-        self.assertEqual(mock_es, storage.get_elasticsearch(
-            check_availability=True))
+        mock_es.info.side_effect = ValueError
+        self.assertRaises(storage.StorageException,
+                          storage.get_elasticsearch, check_availability=True)
         mock_elastic.assert_called_once_with("nodes")
         mock_es.info.assert_called_once_with()

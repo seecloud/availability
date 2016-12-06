@@ -146,8 +146,9 @@ def main(period=None):
         LOG.error("Unexpected backend: %(type)s" % backend)
         return 1
 
-    if not storage.get_elasticsearch(check_availability=True):
-        LOG.error("Failed to set up Elasticsearch")
+    try:
+        storage.get_elasticsearch(check_availability=True)
+    except storage.StorageException:
         return 1
 
     LOG.info("Start watching with period %s seconds" % period)
