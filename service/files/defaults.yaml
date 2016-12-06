@@ -1,0 +1,16 @@
+configs:
+  availability:
+    port:
+      cont: 5000
+    debug: false
+    wsgi:
+      workers: 4
+    watcher:
+      period: 60
+      connection_timeout: 1
+      read_timeout: 10
+    regions: []
+sources:
+  seecloud/availability:
+    git_url: http://github.com/seecloud/availability
+    git_ref: master

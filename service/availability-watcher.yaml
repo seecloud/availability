@@ -1,0 +1,20 @@
+dsl_version: 0.1.0
+service:
+  name: availability-watcher
+  containers:
+    - name: availability-watcher
+      image: availability
+      probes:
+        readiness: "true"
+        liveness:
+          command: "true"
+          type: "exec"
+      daemon:
+        command: availability-watcher
+        files:
+          - availability.conf
+
+files:
+  availability.conf:
+    path: /etc/availability/config.json
+    content: availability.conf.j2
