@@ -25,11 +25,17 @@ LOG = logging.getLogger("api")
 LOG.setLevel(config.get_config().get("logging", {}).get("level", "INFO"))
 
 
-PERIODS = ["day", "week", "month"]
-
-
 def get_period_interval(period):
-    if period == "week":
+    """Return ES query parameters for given period.
+
+    :param period: name of period
+    :returns: (<str period query>, <str query interval>)
+    :raises: werkzeug.exceptions.NotFound
+    """
+    if period == "day":
+        period = "now-1d/m"
+        interval = "10m"
+    elif period == "week":
         period = "now-7d/m"
         interval = "1h"
     elif period == "month":
@@ -39,9 +45,7 @@ def get_period_interval(period):
         period = "now-365d/m"
         interval = "8h"
     else:
-        # assuming day
-        period = "now-1d/m"
-        interval = "10m"
+        flask.abort(404)
     return period, interval
 
 
@@ -106,12 +110,8 @@ def process_results(buckets):
 bp = flask.Blueprint("availability", __name__)
 
 
-@bp.route('/availability', defaults={"period": "day"})
 @bp.route("/availability/<period>")
 def get_availability(period):
-    if period not in PERIODS:
-        flask.abort(404, "Wrong period %s" % period)
-
     start_at, interval = get_period_interval(period)
     query = get_query(start_at, interval, "regions", "region")
 
@@ -122,12 +122,8 @@ def get_availability(period):
     return flask.jsonify(result)
 
 
-@bp.route('/region/<region>/availability', defaults={"period": "day"})
 @bp.route("/region/<region>/availability/<period>")
 def get_region_availability(region, period):
-    if period not in PERIODS:
-        flask.abort(404, "Wrong period %s" % period)
-
     start_at, interval = get_period_interval(period)
     query = get_query(start_at, interval, "services", "name")
 
