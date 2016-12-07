@@ -77,7 +77,7 @@ def get_query(period, interval, aggs_name, aggs_term):
                         "date_histogram": {
                             "field": "timestamp",
                             "interval": interval,
-                            "format": "yyyy-MM-dd'T'hh:mm",
+                            "format": "yyyy-MM-dd'T'HH:mm",
                             "min_doc_count": 0,
                             "extended_bounds": {"min": period}
                         },
