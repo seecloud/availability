@@ -45,8 +45,9 @@ def check_availability(data, results_queue):
     :rtype: None
     """
     try:
-        requests.get(data["url"], timeout=(SERVICE_CONN_TIMEOUT,
-                                           SERVICE_READ_TIMEOUT))
+        requests.get(data["url"], verify=False, timeout=(SERVICE_CONN_TIMEOUT,
+                                                         SERVICE_READ_TIMEOUT))
+
         data["status"] = 1
     except Exception as e:
         data["status"] = 0
