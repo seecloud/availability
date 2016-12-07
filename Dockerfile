@@ -11,7 +11,7 @@ RUN wget https://bootstrap.pypa.io/get-pip.py && \
 COPY . /app
 WORKDIR /app
 
-RUN python setup.py install
-RUN pip install -r requirements.txt
+RUN pip install -r requirements.txt \
+    && python setup.py install
 
 EXPOSE 5000
