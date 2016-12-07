@@ -38,8 +38,9 @@ class WatcherTestCase(test.TestCase):
                                             mock_queue)
         self.assertIsNone(result)
         mock_get.assert_called_once_with(
-            "http://foo/", timeout=(watcher.SERVICE_CONN_TIMEOUT,
-                                    watcher.SERVICE_READ_TIMEOUT))
+            "http://foo/", verify=False,
+            timeout=(watcher.SERVICE_CONN_TIMEOUT,
+                     watcher.SERVICE_READ_TIMEOUT))
         mock_queue.put.assert_called_once_with({"url": "http://foo/",
                                                 "status": 1})
 
