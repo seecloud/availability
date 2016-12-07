@@ -7,14 +7,14 @@ env:
    - TOXENV=pep8
    - TOXENV=yamllint
    - TOXENV=py27
-   - TOXENV=py33
-   - TOXENV=py34
 
 script:
   - tox -e ${TOXENV}
 
 matrix:
   include:
+    - python: "3.5"
+      env: TOXENV=py35
     - python: "2.7"
       install:
         - pip install tox
