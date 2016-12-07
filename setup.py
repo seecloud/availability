@@ -5,7 +5,7 @@ from setuptools import setup
 
 
 def find_subpackages(package):
-    packages = []
+    packages = [package]
     for subpackage in find_packages(package):
         packages.append("{0}.{1}".format(package, subpackage))
     return packages
