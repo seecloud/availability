@@ -131,6 +131,8 @@ def get_region_availability(region, period):
     result = process_results(es_result["aggregations"]["services"]["buckets"])
     result["period"] = period
 
+    import time; time.sleep(20)
+
     return flask.jsonify(result)
 
 
