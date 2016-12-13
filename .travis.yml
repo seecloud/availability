@@ -20,3 +20,22 @@ matrix:
         - pip install coveralls
       env: TOXENV=cover
       after_success: coveralls
+    - language: node_js
+      node_js: "4.2.6"
+      env:
+        - PYTHONPATH=/home/travis/build/seecloud/availability
+        - AVAILABILITY_CONF=/home/travis/build/seecloud/availability/tests/ci/api/config.json
+      services:
+        - docker
+      install:
+        - wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-5.1.1.tar.gz -O - | tar xz
+        - ./elasticsearch-5.1.1/bin/elasticsearch -d
+        - docker build -t availability .
+        - docker run -d -p 127.0.0.1:5000:5000 --net=host -e "AVAILABILITY_CONF=/app/tests/ci/api/config.json" availability /app/entrypoint-api.sh
+        - git clone http://github.com/cybertk/abao && cd abao && git checkout 0.5.0
+        - npm install
+        - cp ../tests/ci/api/abao_hooks.js hooks.js
+        - pip install -r ../requirements.txt
+        - python ../tests/ci/api/populate_elastic.py
+      script:
+        - ./bin/abao ../raml/v1/api.raml --server http://127.0.0.1:5000 --hookfiles hooks.js
