@@ -1,0 +1,56 @@
+#%RAML 0.8
+
+title: Availability Service API
+version: v1
+mediaType: application/json
+
+/api/{version}:
+  uriParameters:
+    version:
+      description: "API version"
+      type: string
+
+  /regions:
+    get:
+      description: "List of regions"
+      responses:
+        200:
+          body:
+            schema: !include schemas/200.list.json
+            example: !include response_examples/200/regions.json
+
+  /region/{region}:
+    uriParameters:
+      region:
+        description: "Region name which is region identifier"
+        type: string
+
+    /availability/{period}:
+      uriParameters:
+        period:
+          description: "Return availability data for specific period: day, week, month"
+          type: string
+      get:
+        description: "Region availability data aggregated per service"
+        responses:
+          200:
+            body:
+              schema: !include schemas/200.json
+              example: !include response_examples/200/region_availability.json
+          404:
+            body:
+              schema: !include schemas/404.json
+              example: !include response_examples/404/region.json
+
+  /availability/{period}:
+    uriParameters:
+      period:
+        description: "Return availability data for specific period: day, week, month"
+        type: string
+    get:
+      description: "Availability data aggregated per region"
+      responses:
+        200:
+          body:
+            schema: !include schemas/200.json
+            example: !include response_examples/200/availability.json
