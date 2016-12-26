@@ -15,32 +15,12 @@
 
 import argparse
 
-import flask
-from flask_helpers import routing
-
-from availability.api.v1 import api
-from availability.api.v1 import regions
+from availability import app
 from availability import config
 
 
-app = flask.Flask(__name__, static_folder=None)
-config.get_config()
-
-
-@app.errorhandler(404)
-def not_found(error):
-    return flask.jsonify({"error": "Not Found"}), 404
-
-
-for bp in [api, regions]:
-    for url_prefix, blueprint in bp.get_blueprints():
-        app.register_blueprint(blueprint, url_prefix="/api/v1%s" % url_prefix)
-
-
-app = routing.add_routing_map(app, html_uri=None, json_uri="/")
-
-
 def main():
+    config.get_config()
     parser = argparse.ArgumentParser()
     parser.add_argument("--host",
                         default="0.0.0.0",
@@ -52,8 +32,4 @@ def main():
                         help="A port to bind development server. "
                              "(default 5000)")
     args = parser.parse_args()
-    app.run(host=args.host, port=args.port)
-
-
-if __name__ == "__main__":
-    main()
+    app.app.run(host=args.host, port=args.port)

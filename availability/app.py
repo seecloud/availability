@@ -13,19 +13,22 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import json
+import flask
+from flask_helpers import routing
 
-import testtools
+from availability.api.v1 import api
+from availability.api.v1 import regions
 
-from availability import app
+app = flask.Flask(__name__, static_folder=None)
 
 
-class TestCase(testtools.TestCase):
+@app.errorhandler(404)
+def not_found(error):
+    return flask.jsonify({"error": "Not Found"}), 404
 
-    def setUp(self):
-        super(TestCase, self).setUp()
-        self.app = app.app.test_client()
 
-    def get(self, *args, **kwargs):
-        rv = self.app.get(*args, **kwargs)
-        return rv.status_code, json.loads(rv.data.decode())
+for bp in [api, regions]:
+    for url_prefix, blueprint in bp.get_blueprints():
+        app.register_blueprint(blueprint, url_prefix="/api/v1%s" % url_prefix)
+
+app = routing.add_routing_map(app, html_uri=None, json_uri="/")

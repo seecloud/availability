@@ -27,7 +27,7 @@ class MainTestCase(test.TestCase):
         self.assertEqual({"error": "Not Found"}, resp)
 
     @mock.patch("availability.main.argparse.ArgumentParser")
-    @mock.patch("availability.main.app")
+    @mock.patch("availability.main.app.app")
     def test_main_default(self, mock_app, mock_parser):
         mock_parser.return_value.parse_args.return_value.configure_mock(**{
             "host": "0.0.0.0",
@@ -37,7 +37,7 @@ class MainTestCase(test.TestCase):
         mock_app.run.assert_called_once_with(host="0.0.0.0", port=5000)
 
     @mock.patch("availability.main.argparse.ArgumentParser")
-    @mock.patch("availability.main.app")
+    @mock.patch("availability.main.app.app")
     def test_main_custom(self, mock_app, mock_parser):
         mock_parser.return_value.parse_args.return_value.configure_mock(**{
             "host": "foo_host",

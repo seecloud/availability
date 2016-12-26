@@ -13,19 +13,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import json
-
-import testtools
 
 from availability import app
+from availability import config
 
+config.get_config()
 
-class TestCase(testtools.TestCase):
-
-    def setUp(self):
-        super(TestCase, self).setUp()
-        self.app = app.app.test_client()
-
-    def get(self, *args, **kwargs):
-        rv = self.app.get(*args, **kwargs)
-        return rv.status_code, json.loads(rv.data.decode())
+application = app.app

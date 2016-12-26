@@ -19,7 +19,7 @@ service:
                  --name availability-api
                  --workers {{ availability.wsgi.workers }}
                  --bind 0.0.0.0:{{ availability.port.cont }}
-                 availability.main:app
+                 availability.wsgi
         files:
           - availability.conf
 
