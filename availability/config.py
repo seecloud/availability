@@ -23,11 +23,6 @@ import jsonschema
 CONF = None
 
 DEFAULT_CONF = {
-    "flask": {
-        "HOST": "0.0.0.0",
-        "PORT": 5000,
-        "DEBUG": False
-    },
     "backend": {
         "type": "elastic",
         "connection": [{"host": "127.0.0.1", "port": 9200}]
@@ -39,14 +34,6 @@ CONF_SCHEMA = {
     "type": "object",
     "$schema": "http://json-schema.org/draft-04/schema",
     "properties": {
-        "flask": {
-            "type": "object",
-            "properties": {
-                "PORT": {"type": "integer"},
-                "HOST": {"type": "string"},
-                "DEBUG": {"type": "boolean"}
-            }
-        },
         "backend": {
             "type": "object",
             "properties": {
@@ -97,7 +84,7 @@ CONF_SCHEMA = {
             }
         }
     },
-    "required": ["flask", "backend", "regions"]
+    "required": ["backend", "regions"]
 }
 
 

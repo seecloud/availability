@@ -13,6 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import argparse
+
 import flask
 from flask_helpers import routing
 
@@ -22,7 +24,7 @@ from availability import config
 
 
 app = flask.Flask(__name__, static_folder=None)
-app.config.update(config.get_config()["flask"])
+config.get_config()
 
 
 @app.errorhandler(404)
@@ -39,8 +41,18 @@ app = routing.add_routing_map(app, html_uri=None, json_uri="/")
 
 
 def main():
-    app.run(host=app.config.get("HOST", "0.0.0.0"),
-            port=app.config.get("PORT", 5000))
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--host",
+                        default="0.0.0.0",
+                        help="A host to bind development server. "
+                             "(default 0.0.0.0)")
+    parser.add_argument("--port",
+                        type=int,
+                        default=5000,
+                        help="A port to bind development server. "
+                             "(default 5000)")
+    args = parser.parse_args()
+    app.run(host=args.host, port=args.port)
 
 
 if __name__ == "__main__":

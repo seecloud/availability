@@ -31,11 +31,6 @@ Here is a simple example:
 .. code-block::
 
   {
-      "flask": {
-          "PORT": 5020,
-          "HOST": "0.0.0.0",
-          "DEBUG": false
-      },
       "backend": {
           "type": "elastic",
           "connection": [{"host": "127.0.0.1", "port": 9200}]

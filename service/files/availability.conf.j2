@@ -1,9 +1,4 @@
 {
-    "flask": {
-        "HOST": "0.0.0.0",
-        "PORT": {{ availability.port.cont }},
-        "DEBUG": {% if availability.debug %}true{% else %}false{% endif %}
-    },
     "backend": {
         "type": "elastic",
         "connection": [
