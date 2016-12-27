@@ -15,7 +15,7 @@ service:
           command: "true"
           type: "exec"
       daemon:
-        command: gunicorn
+        command: cat /etc/availability/config.yaml && gunicorn
                  --name availability-api
                  --workers {{ availability.wsgi.workers }}
                  --bind 0.0.0.0:{{ availability.port.cont }}
@@ -25,5 +25,5 @@ service:
 
 files:
   availability.conf:
-    path: /etc/availability/config.json
+    path: /etc/availability/config.yaml
     content: availability.conf.j2

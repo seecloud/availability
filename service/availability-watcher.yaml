@@ -10,11 +10,11 @@ service:
           command: "true"
           type: "exec"
       daemon:
-        command: availability-watcher
+        command: cat /etc/availability/config.yaml && availability-watcher
         files:
           - availability.conf
 
 files:
   availability.conf:
-    path: /etc/availability/config.json
+    path: /etc/availability/config.yaml
     content: availability.conf.j2
