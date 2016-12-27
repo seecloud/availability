@@ -20,8 +20,7 @@ from availability import storage
 from tests.unit import test
 
 
-class StorageTestCase(test.TestCase):
-
+class EnsureIndexTestCase(test.TestCase):
     @mock.patch("availability.storage.json.dumps")
     @mock.patch("availability.storage.LOG")
     @mock.patch("availability.storage.get_elasticsearch")
@@ -57,21 +56,30 @@ class StorageTestCase(test.TestCase):
         mock_es.indices.create.assert_called_once_with(
             body="foo_dumped_str", index="foo_index")
 
-    @mock.patch("availability.storage.elasticsearch.Elasticsearch")
-    @mock.patch("availability.storage.config")
-    @mock.patch("availability.storage.LOG")
-    def test_get_elasticsearch(self, mock_log, mock_config, mock_elastic):
-        mock_es = mock.Mock()
-        mock_es.indices.exists.side_effect = ValueError
-        mock_elastic.return_value = mock_es
-        mock_config.get_config.return_value = (
-            {"backend": {"connection": "nodes"}})
-        self.assertFalse(mock_es.info.called)
-        self.assertEqual(mock_es, storage.get_elasticsearch())
 
-        mock_es.indices.exists.side_effect = None
-        mock_elastic.reset_mock()
-        self.assertEqual(mock_es, storage.get_elasticsearch(
-            check_availability=True))
-        mock_elastic.assert_called_once_with("nodes")
-        mock_es.info.assert_called_once_with()
+class GetElasticTestCase(test.TestCase):
+    def setUp(self):
+        super(GetElasticTestCase, self).setUp()
+        self.mock_config({
+            "backend": {
+                "type": "elastic",
+                "connection": [{"host": "node0"}],
+            },
+        })
+
+    @mock.patch("availability.storage.elasticsearch.Elasticsearch")
+    @mock.patch("availability.storage.LOG")
+    def test_get_elasticsearch(self, mock_log, mock_elastic):
+        result = storage.get_elasticsearch()
+
+        self.assertFalse(mock_elastic.return_value.info.called)
+        self.assertEqual(result, mock_elastic.return_value)
+        mock_elastic.assert_called_once_with([{"host": "node0"}])
+
+    @mock.patch("availability.storage.elasticsearch.Elasticsearch")
+    @mock.patch("availability.storage.LOG")
+    def test_get_elasticsearch_check(self, mock_log, mock_elastic):
+        result = storage.get_elasticsearch(check_availability=True)
+
+        self.assertTrue(mock_elastic.return_value.info.called)
+        self.assertEqual(result, mock_elastic.return_value)

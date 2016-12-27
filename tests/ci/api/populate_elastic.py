@@ -15,11 +15,13 @@
 
 import datetime as dt
 import json
-import os
 import random
 import sys
 import uuid
 
+from oss_lib import config
+
+from availability import config as cfg
 from availability import storage
 
 
@@ -57,8 +59,10 @@ def compose_bulk_requests(regions, ts_interval, ts_in_bunch, bunches):
 
 def populate_elastic(**kwargs):
     started_at = dt.datetime.now()
-    conf = json.load(open(os.environ.get("AVAILABILITY_CONF")))
-    regions = {r["name"]: r["services"] for r in conf["regions"]}
+    config.process_env("AVAILABILITY",
+                       defaults=cfg.DEFAULT,
+                       validation_schema=cfg.SCHEMA)
+    regions = {r["name"]: r["services"] for r in config.CONF["regions"]}
     elastic = storage.get_elasticsearch(check_availability=True)
 
     # Create indices

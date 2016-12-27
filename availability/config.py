@@ -13,94 +13,68 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import json
-import logging
-import os
+DEFAULT_CONF_PATH = "/etc/availability/config.json"
 
-import jsonschema
-
-
-CONF = None
-
-DEFAULT_CONF = {
+DEFAULT = {
     "backend": {
         "type": "elastic",
-        "connection": [{"host": "127.0.0.1", "port": 9200}]
+        "connection": [
+            {"host": "127.0.0.1", "port": 9200},
+        ],
     },
-    "regions": []
+    "regions": [],
+    "period": 60,
+    "connection_timeout": 1,
+    "read_timeout": 10,
 }
 
-CONF_SCHEMA = {
-    "type": "object",
-    "$schema": "http://json-schema.org/draft-04/schema",
-    "properties": {
-        "backend": {
+SCHEMA = {
+    "backend": {
+        "type": "object",
+        "properties": {
+            "type": {"type": "string"},
+            "connection": {
+                "type": "array",
+                "items": {
+                    # TODO(akscram): Here should be enum.
+                    "type": "object",
+                    "properties": {
+                        "host": {"type": "string"},
+                        "port": {"type": "integer"},
+                    },
+                    "required": ["host"],
+                    "additionalProperties": False,
+                },
+                "minItems": 1,
+            },
+        },
+        "required": ["type", "connection"],
+        "additionalProperties": False,
+    },
+    "regions": {
+        "type": "array",
+        "items": {
             "type": "object",
             "properties": {
-                "type": {"type": "string"},
-                "connection": {
+                "name": {"type": "string"},
+                "services": {
                     "type": "array",
                     "items": {
                         "type": "object",
                         "properties": {
-                            "host": {"type": "string"},
-                            "port": {"type": "integer"}
+                            "name": {"type": "string"},
+                            "url": {"type": "string"}
                         },
-                        "required": ["host"]
+                        "required": ["name", "url"],
+                        "additionalProperties": False,
                     },
-                    "minItems": 1
-                }
+                    "minItems": 1,
+                },
             },
-            "required": ["type", "connection"]
+            "additionalProperties": False,
         },
-        "regions": {
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "name": {"type": "string"},
-                    "services": {
-                        "type": "array",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "name": {"type": "string"},
-                                "url": {"type": "string"}
-                            },
-                            "required": ["name", "url"]
-                        },
-                        "minItems": 1
-                    }
-                }
-            }
-        },
-        "period": {"type": "number", "minimum": 5},
-        "connection_timeout": {"type": "number"},
-        "read_timeout": {"type": "number"},
     },
-    "required": ["backend", "regions"]
+    "period": {"type": "number", "minimum": 5},
+    "connection_timeout": {"type": "number"},
+    "read_timeout": {"type": "number"},
 }
-
-
-def get_config():
-    """Get cached configuration.
-
-    :returns: application config
-    :rtype: dict
-    """
-    global CONF
-    if not CONF:
-        path = os.environ.get("AVAILABILITY_CONF",
-                              "/etc/availability/config.json")
-        try:
-            config = json.load(open(path))
-            logging.info("Config is '%s'" % path)
-            jsonschema.validate(config, CONF_SCHEMA)
-            CONF = config
-        except IOError as exc:
-            logging.warning("Failed to load config from '%s': %s", path, exc)
-            CONF = DEFAULT_CONF
-        except jsonschema.exceptions.ValidationError as exc:
-            logging.error("Configuration file %s is not valid: %s", path, exc)
-            raise
-    return CONF

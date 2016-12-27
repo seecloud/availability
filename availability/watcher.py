@@ -16,24 +16,21 @@
 import datetime as dt
 import json
 import logging
-import sys
 import threading
 import time
 import uuid
 
 from elasticsearch import exceptions as es_exceptions
+from oss_lib import config
 import queue
 import requests
 import schedule
 
-from availability import config
+from availability import config as cfg
 from availability import storage
 
-
-SERVICE_CONN_TIMEOUT = config.get_config().get("connection_timeout", 1)
-SERVICE_READ_TIMEOUT = config.get_config().get("read_timeout", 10)
-
-LOG = logging.getLogger("watcher")
+CONF = config.CONF
+LOG = logging.getLogger(__name__)
 
 
 def check_availability(data, results_queue):
@@ -44,8 +41,9 @@ def check_availability(data, results_queue):
     :rtype: None
     """
     try:
-        requests.get(data["url"], verify=False, timeout=(SERVICE_CONN_TIMEOUT,
-                                                         SERVICE_READ_TIMEOUT))
+        requests.get(data["url"], verify=False,
+                     timeout=(CONF["connection_timeout"],
+                              CONF["read_timeout"]))
 
         data["status"] = 1
     except Exception as e:
@@ -104,7 +102,7 @@ results_queue = queue.Queue()
 
 def watch_services():
     """Query services of all regions and save results."""
-    for region in config.get_config().get("regions"):
+    for region in CONF["regions"]:
         for service in region.get("services"):
             LOG.info("Checking service '%(name)s' availability on %(url)s"
                      % service)
@@ -130,18 +128,23 @@ def main(period=None):
     This runs infinite availability check with given period.
     :param period: period in seconds
     """
-    if not config.get_config().get("regions"):
+    config.process_args("AVAILABILITY",
+                        default_config_path=cfg.DEFAULT_CONF_PATH,
+                        defaults=cfg.DEFAULT,
+                        validation_schema=cfg.SCHEMA)
+
+    if not CONF["regions"]:
         LOG.error("No regions configured. Quitting.")
         return 1
 
-    period = period or config.get_config().get("period", 60)
+    period = period or CONF["period"]
 
-    if SERVICE_CONN_TIMEOUT + SERVICE_READ_TIMEOUT > period:
+    if CONF["connection_timeout"] + CONF["read_timeout"] > period:
         LOG.error("Period can not be lesser than timeout, "
                   "otherwise threads could crowd round.")
         return 1
 
-    backend = config.get_config().get("backend")
+    backend = CONF["backend"]
     if backend["type"] != "elastic":
         LOG.error("Unexpected backend: %(type)s" % backend)
         return 1
@@ -156,10 +159,3 @@ def main(period=None):
     while True:
         time.sleep(1)
         schedule.run_pending()
-
-
-if __name__ == "__main__":
-    try:
-        sys.exit(main())
-    except KeyboardInterrupt:
-        LOG.error("Got SIGINT. Quitting...")

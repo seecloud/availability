@@ -15,12 +15,13 @@
 
 import argparse
 
+from oss_lib import config
+
 from availability import app
-from availability import config
+from availability import config as cfg
 
 
 def main():
-    config.get_config()
     parser = argparse.ArgumentParser()
     parser.add_argument("--host",
                         default="0.0.0.0",
@@ -31,5 +32,10 @@ def main():
                         default=5000,
                         help="A port to bind development server. "
                              "(default 5000)")
-    args = parser.parse_args()
+    args = config.process_args("AVAILABILITY",
+                               parser=parser,
+                               default_config_path=cfg.DEFAULT_CONF_PATH,
+                               defaults=cfg.DEFAULT,
+                               validation_schema=cfg.SCHEMA)
+    app.app.config.update(config.CONF, **{"DEBUG": args.debug})
     app.app.run(host=args.host, port=args.port)

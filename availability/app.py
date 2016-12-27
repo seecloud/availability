@@ -14,7 +14,7 @@
 #    under the License.
 
 import flask
-from flask_helpers import routing
+from oss_lib import routing
 
 from availability.api.v1 import api
 from availability.api.v1 import regions

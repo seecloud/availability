@@ -15,6 +15,7 @@
 
 import mock
 
+from availability.api.v1 import api
 from tests.unit import test
 
 
@@ -74,3 +75,37 @@ class ApiTestCase(test.TestCase):
             mock_storage.es_search.reset_mock()
             mock_process_results.assert_called_once_with("foo_buckets")
             mock_process_results.reset_mock()
+
+
+# TODO(akscram): Just to pass coverage, re-write this test completely.
+class ResultsTestCase(test.TestCase):
+    def test_process_results(self):
+        buckets = [{
+            "key": "key_av",
+            "availability": {"value": 1},
+            "data": {
+                "buckets": [
+                    {
+                        "availability": {"value": 1},
+                        "key_as_string": "key_1",
+                    },
+                    {
+                        "availability": {"value": 1},
+                        "key_as_string": "key_2",
+                    },
+                ],
+            },
+        }]
+        expected = {
+            "availability": {
+                "key_av": {
+                    "availability": 1,
+                    "availability_data": [
+                        ["key_1", 1],
+                        ["key_2", 1],
+                    ],
+                },
+            },
+        }
+        result = api.process_results(buckets)
+        self.assertEqual(result, expected)

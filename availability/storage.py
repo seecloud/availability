@@ -17,10 +17,11 @@ import json
 import logging
 
 import elasticsearch
+from oss_lib import config
 
-from availability import config
+CONF = config.CONF
+LOG = logging.getLogger(__name__)
 
-LOG = logging.getLogger("storage")
 NUMBER_OF_SHARDS = 2
 
 
@@ -31,7 +32,7 @@ def get_elasticsearch(check_availability=False):
     :returns: Elasticsearch or None on failure
     :rtype: elasticsearch.Elasticsearch
     """
-    nodes = config.get_config()["backend"]["connection"]
+    nodes = CONF["backend"]["connection"]
     try:
         es = elasticsearch.Elasticsearch(nodes)
         if check_availability:
