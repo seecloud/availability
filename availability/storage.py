@@ -21,7 +21,6 @@ import elasticsearch
 from availability import config
 
 LOG = logging.getLogger("storage")
-LOG.setLevel(config.get_config().get("logging", {}).get("level", "INFO"))
 NUMBER_OF_SHARDS = 2
 
 

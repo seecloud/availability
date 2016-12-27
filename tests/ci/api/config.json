@@ -21,7 +21,4 @@
         }
     ],
     "period": 60,
-    "logging": {
-        "level": "DEBUG"
-    }
 }

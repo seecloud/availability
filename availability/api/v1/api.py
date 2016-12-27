@@ -22,7 +22,6 @@ from availability import storage
 
 
 LOG = logging.getLogger("api")
-LOG.setLevel(config.get_config().get("logging", {}).get("level", "INFO"))
 
 
 def get_period_interval(period):

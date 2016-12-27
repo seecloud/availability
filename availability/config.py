@@ -77,12 +77,6 @@ CONF_SCHEMA = {
         "period": {"type": "number", "minimum": 5},
         "connection_timeout": {"type": "number"},
         "read_timeout": {"type": "number"},
-        "logging": {
-            "type": "object",
-            "properties": {
-                "level": {"type": "string"}
-            }
-        }
     },
     "required": ["backend", "regions"]
 }

@@ -22,7 +22,4 @@
     "period": 60,
     "connection_timeout": 1,
     "read_timeout": 10,
-    "logging": {
-        "level": "INFO"
-    }
 }

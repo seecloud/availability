@@ -34,7 +34,6 @@ SERVICE_CONN_TIMEOUT = config.get_config().get("connection_timeout", 1)
 SERVICE_READ_TIMEOUT = config.get_config().get("read_timeout", 10)
 
 LOG = logging.getLogger("watcher")
-LOG.setLevel(config.get_config().get("logging", {}).get("level", "INFO"))
 
 
 def check_availability(data, results_queue):
