@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-DEFAULT_CONF_PATH = "/etc/availability/config.json"
+DEFAULT_CONF_PATH = "/etc/availability/config.yaml"
 
 DEFAULT = {
     "backend": {
