@@ -16,6 +16,7 @@
 import mock
 import requests
 
+from availability import storage
 from availability import watcher
 from tests.unit import test
 
@@ -135,13 +136,13 @@ class WatcherTestCase(test.TestCase):
         self.assertEqual(calls, mock_thread.mock_calls)
 
     @mock.patch("availability.watcher.schedule")
-    @mock.patch("availability.watcher.storage")
+    @mock.patch("availability.watcher.storage.get_elasticsearch")
     @mock.patch("availability.watcher.watch_services")
     @mock.patch("availability.watcher.config.get_config")
     @mock.patch("availability.watcher.time")
     @mock.patch("availability.watcher.LOG")
     def test_main(self, mock_log, mock_time, mock_get_config,
-                  mock_watch_services, mock_storage, mock_schedule):
+                  mock_watch_services, mock_get_elastic, mock_schedule):
         class BreakInfinityCicle(Exception):
             pass
 
@@ -167,19 +168,18 @@ class WatcherTestCase(test.TestCase):
         backend = {"type": "elastic", "connection": "foo_conn"}
         mock_get_config.return_value = {"regions": ["foo_region"],
                                         "backend": backend}
-        mock_storage.get_elasticsearch.return_value = None
+        mock_get_elastic.side_effect = storage.StorageException
         self.assertEqual(1, watcher.main())
-        mock_storage.get_elasticsearch.assert_called_once_with(
+        mock_get_elastic.assert_called_once_with(
             check_availability=True)
 
-        mock_storage.reset_mock()
-        mock_storage.get_elasticsearch.return_value = mock.Mock()
+        mock_get_elastic.reset_mock()
+        mock_get_elastic.side_effect = None
 
         self.assertRaises(BreakInfinityCicle, watcher.main)
         self.assertEqual([mock.call(1)] * 4, mock_time.sleep.mock_calls)
         mock_schedule.every.assert_called_once_with(60)
-        mock_storage.get_elasticsearch.assert_called_once_with(
-            check_availability=True)
+        mock_get_elastic.assert_called_once_with(check_availability=True)
 
         mock_get_config.return_value = {"regions": ["foo_region"],
                                         "backend": backend, "period": 42}

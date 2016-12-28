@@ -25,12 +25,16 @@ LOG.setLevel(config.get_config().get("logging", {}).get("level", "INFO"))
 NUMBER_OF_SHARDS = 2
 
 
+class StorageException(Exception):
+    pass
+
+
 def get_elasticsearch(check_availability=False):
     """Return Elasticsearch instance.
 
     :param check_availability: check if nodes are available
-    :returns: Elasticsearch or None on failure
-    :rtype: elasticsearch.Elasticsearch
+    :returns: elasticsearch.Elasticsearch
+    :raises: StorageException
     """
     nodes = config.get_config()["backend"]["connection"]
     try:
@@ -38,10 +42,10 @@ def get_elasticsearch(check_availability=False):
         if check_availability:
                 es.info()
     except Exception as e:
-        LOG.warning(
-            "Failed to query Elasticsearch nodes %s: %s"
-            % (nodes, str(e)))
-        raise
+        mesg = ("Failed to query Elasticsearch nodes %s: %s"
+                % (nodes, str(e)))
+        LOG.error(mesg)
+        raise StorageException(mesg)
     return es
 
 
