@@ -1,0 +1,23 @@
+backend:
+  type: elastic
+  connection:
+    - host: 127.0.0.1
+      port: 9200
+regions:
+  - name: foo_region
+    services:
+      - name: alpha
+        url: http://alpha.example.org/
+      - name: beta
+        url: http://beta.example.org/
+      - name: gamma
+        url: http://gamma.example.org:5555/
+  - name: bar_region
+    services:
+      - name: delta
+        url: http://example.org/delta/
+      - name: epsilon
+        url: http://example.org/epsilon/
+period: 60
+connection_timeout: 1
+read_timeout: 10

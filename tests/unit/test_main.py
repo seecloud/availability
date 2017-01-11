@@ -26,14 +26,25 @@ class MainTestCase(test.TestCase):
         self.assertEqual(404, code)
         self.assertEqual({"error": "Not Found"}, resp)
 
-    @mock.patch("availability.main.app")
-    def test_main(self, mock_app):
-        mock_app.config = {}
+    @mock.patch("availability.main.argparse.ArgumentParser")
+    @mock.patch("availability.main.config.process_args")
+    @mock.patch("availability.main.app.app")
+    def test_main_default(self, mock_app, mock_process, mock_parser):
+        mock_process.return_value.configure_mock(**{
+            "host": "0.0.0.0",
+            "port": 5000,
+        })
         main.main()
         mock_app.run.assert_called_once_with(host="0.0.0.0", port=5000)
 
-        mock_app.run.reset_mock()
-        mock_app.config = {"HOST": "foo_host", "PORT": 42}
+    @mock.patch("availability.main.argparse.ArgumentParser")
+    @mock.patch("availability.main.config.process_args")
+    @mock.patch("availability.main.app.app")
+    def test_main_custom(self, mock_app, mock_process, mock_parser):
+        mock_process.return_value.configure_mock(**{
+            "host": "foo_host",
+            "port": 42,
+        })
         main.main()
         mock_app.run.assert_called_once_with(host="foo_host", port=42)
 

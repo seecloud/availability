@@ -16,5 +16,5 @@ service:
 
 files:
   availability.conf:
-    path: /etc/availability/config.json
+    path: /etc/availability/config.yaml
     content: availability.conf.j2

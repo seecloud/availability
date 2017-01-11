@@ -13,12 +13,15 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import jsonschema
+from oss_lib import config
 
-from availability import config
-from tests.unit import test
+from availability import app
+from availability import config as cfg
 
 
-class ConfigTestCase(test.TestCase):
-    def test_validate_default_config(self):
-        jsonschema.validate(config.DEFAULT, config.SCHEMA)
+config.process_env("AVAILABILITY",
+                   default_config_path=cfg.DEFAULT_CONF_PATH,
+                   defaults=cfg.DEFAULT,
+                   validation_schema=cfg.SCHEMA)
+
+application = app.app

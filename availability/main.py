@@ -13,35 +13,29 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import flask
-from flask_helpers import routing
+import argparse
 
-from availability.api.v1 import api
-from availability.api.v1 import regions
-from availability import config
+from oss_lib import config
 
-
-app = flask.Flask(__name__, static_folder=None)
-app.config.update(config.get_config()["flask"])
-
-
-@app.errorhandler(404)
-def not_found(error):
-    return flask.jsonify({"error": "Not Found"}), 404
-
-
-for bp in [api, regions]:
-    for url_prefix, blueprint in bp.get_blueprints():
-        app.register_blueprint(blueprint, url_prefix="/api/v1%s" % url_prefix)
-
-
-app = routing.add_routing_map(app, html_uri=None, json_uri="/")
+from availability import app
+from availability import config as cfg
 
 
 def main():
-    app.run(host=app.config.get("HOST", "0.0.0.0"),
-            port=app.config.get("PORT", 5000))
-
-
-if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--host",
+                        default="0.0.0.0",
+                        help="A host to bind development server. "
+                             "(default 0.0.0.0)")
+    parser.add_argument("--port",
+                        type=int,
+                        default=5000,
+                        help="A port to bind development server. "
+                             "(default 5000)")
+    args = config.process_args("AVAILABILITY",
+                               parser=parser,
+                               default_config_path=cfg.DEFAULT_CONF_PATH,
+                               defaults=cfg.DEFAULT,
+                               validation_schema=cfg.SCHEMA)
+    app.app.config.update(config.CONF, **{"DEBUG": args.debug})
+    app.app.run(host=args.host, port=args.port)

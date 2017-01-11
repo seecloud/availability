@@ -1,43 +1,20 @@
-{
-    "flask": {
-        "HOST": "0.0.0.0",
-        "PORT": {{ availability.port.cont }},
-        "DEBUG": {% if availability.debug %}true{% else %}false{% endif %}
-    },
-    "backend": {
-        "type": "elastic",
-        "connection": [
-        {%- for node in elasticsearch.hosts %}
-            {
-              "host": "{{ node.host }}",
-              "port": {{ node.port }}
-            }
-            {%- if loop.length > 1 and not loop.last %},{% endif -%}
-        {%- endfor -%}
-        ]
-    },
-    "regions": [
-    {%- for region in availability.regions %}
-        {
-            "name": "{{ region.name }}",
-            "services": [
-            {%- for service in region.services -%}
-                {
-                    "name": "{{ service.name }}",
-                    "url": "{{ service.url }}"
-                }
-                {%- if loop.length > 1 and not loop.last %},{% endif -%}
-            {%- endfor -%}
-            ]
-        }
-        {%- if loop.length > 1 and not loop.last %},{% endif -%}
+backend:
+  type: elastic
+  connection:
+    {%- for node in elasticsearch.hosts %}
+    - host: {{ node.host }}
+      port: {{ node.port }}
     {%- endfor %}
-    ],
+regions:
+  {%- for region in availability.regions %}
+  - name: {{ region.name }}
+    services:
+      {%- for service in region.services %}
+      - name: {{ service.name }}
+        url: {{ service.url }}
+      {%- endfor -%}
+  {%- endfor %}
 
-    "period": {{ availability.watcher.period }},
-    "connection_timeout": {{ availability.watcher.connection_timeout }},
-    "read_timeout": {{ availability.watcher.read_timeout }},
-    "logging": {
-        "level": "{% if availability.debug %}DEBUG{% else %}INFO{% endif %}"
-    }
-}
+period: {{ availability.watcher.period }}
+connection_timeout: {{ availability.watcher.connection_timeout }}
+read_timeout: {{ availability.watcher.read_timeout }}

@@ -13,19 +13,36 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import copy
 import json
 
+import mock
+from oss_lib import config
 import testtools
 
-from availability import main
+from availability import app
+from availability import config as cfg
 
 
 class TestCase(testtools.TestCase):
 
     def setUp(self):
         super(TestCase, self).setUp()
-        self.app = main.app.test_client()
+        self.app = app.app.test_client()
 
     def get(self, *args, **kwargs):
         rv = self.app.get(*args, **kwargs)
         return rv.status_code, json.loads(rv.data.decode())
+
+    def mock_config(self, update=None):
+        patch = mock.patch("oss_lib.config._CONF")
+        patch.start()
+        self.addCleanup(patch.stop)
+
+        defaults = copy.deepcopy(cfg.DEFAULT)
+        if update:
+            config.merge_dicts(defaults, update)
+        config.setup_config(
+            defaults=defaults,
+            validation_schema=cfg.SCHEMA,
+        )

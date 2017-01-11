@@ -14,10 +14,13 @@
 #    under the License.
 
 import mock
+from oss_lib import config
 import requests
 
 from availability import watcher
 from tests.unit import test
+
+CONF = config.CONF
 
 
 class WatcherTestCase(test.TestCase):
@@ -25,6 +28,7 @@ class WatcherTestCase(test.TestCase):
     @mock.patch("availability.watcher.requests.get")
     @mock.patch("availability.watcher.LOG")
     def test_check_availability(self, mock_log, mock_get):
+        self.mock_config()
         mock_queue = mock.Mock()
         mock_get.side_effect = ValueError
         watcher.check_availability({"url": "http://foo/"}, mock_queue)
@@ -39,8 +43,8 @@ class WatcherTestCase(test.TestCase):
         self.assertIsNone(result)
         mock_get.assert_called_once_with(
             "http://foo/", verify=False,
-            timeout=(watcher.SERVICE_CONN_TIMEOUT,
-                     watcher.SERVICE_READ_TIMEOUT))
+            timeout=(CONF["connection_timeout"],
+                     CONF["read_timeout"]))
         mock_queue.put.assert_called_once_with({"url": "http://foo/",
                                                 "status": 1})
 
@@ -55,19 +59,21 @@ class WatcherTestCase(test.TestCase):
     @mock.patch("availability.watcher.storage")
     @mock.patch("availability.watcher.uuid")
     @mock.patch("availability.watcher.json.dumps")
-    @mock.patch("availability.watcher.config.get_config")
     @mock.patch("availability.watcher.LOG")
-    def test_save_availability(self, mock_log, mock_get_config, mock_dumps,
-                               mock_uuid, mock_storage):
-        backend = {"type": "elastic", "connection": "foo_connection"}
-        mock_get_config.return_value = {"backend": backend}
+    def test_save_availability(self, mock_log, mock_dumps, mock_uuid,
+                               mock_storage):
+        self.mock_config({
+            "backend": {
+                "type": "elastic",
+                "connection": [{"host": "foo_host"}],
+            },
+        })
+
         mock_queue = mock.Mock()
         queue_side_effect = [{"region": "foo"}, {"region": "bar"},
                              watcher.queue.Empty]
         mock_queue.get.side_effect = queue_side_effect
 
-        backend = {"type": "elastic", "connection": "foo_connection"}
-        mock_get_config.return_value = {"backend": backend}
         mock_dumps.side_effect = ["value-1", "value-2", "value-3", "value-4"]
         mock_es = mock.Mock()
         mock_storage.get_elasticsearch.return_value = mock_es
@@ -102,12 +108,11 @@ class WatcherTestCase(test.TestCase):
         self.assertIsNone(watcher.save_availability(mock_queue))
 
     @mock.patch("availability.watcher.dt")
-    @mock.patch("availability.watcher.config.get_config")
     @mock.patch("availability.watcher.threading.Thread")
     @mock.patch("availability.watcher.results_queue")
     @mock.patch("availability.watcher.LOG")
     def test_watch_services(self, mock_log, mock_queue, mock_thread,
-                            mock_get_config, mock_dt):
+                            mock_dt):
         mock_isoformat = mock.Mock()
         mock_isoformat.side_effect = ["time-1", "time-2"]
         mock_dt.datetime.now.return_value.isoformat = mock_isoformat
@@ -116,9 +121,9 @@ class WatcherTestCase(test.TestCase):
              "services": [{"name": "a_svc", "url": "a_url"}]},
             {"name": "b_reg",
              "services": [{"name": "b_svc", "url": "b_url"}]}]}
-        mock_get_config.return_value = regions
+        self.mock_config(regions)
+
         watcher.watch_services()
-        mock_get_config.assert_called_once_with()
         calls = [
             mock.call(args=({"url": "a_url", "region": "a_reg",
                              "name": "a_svc", "timestamp": "time-1"},
@@ -134,39 +139,62 @@ class WatcherTestCase(test.TestCase):
             mock.call().start()]
         self.assertEqual(calls, mock_thread.mock_calls)
 
+
+class MainTestCase(test.TestCase):
+    BASE_CONF = {
+        "regions": [
+            {
+                "services": [
+                    {
+                        "name": "foo_name",
+                        "url": "http://foo_url",
+                    },
+                ],
+            }
+        ],
+    }
+    UNEXPECTED_BACKEND_CONF = dict(BASE_CONF, **{
+        "backend": {
+            "type": "unexpected",
+            "connection": [{"host": "foo_host"}],
+        },
+    })
+    ELASTIC_BACKEND_CONF = dict(BASE_CONF, **{
+        "backend": {
+            "type": "elastic",
+            "connection": [{"host": "foo_host"}],
+        },
+    })
+    PERIOD_CONF = dict(ELASTIC_BACKEND_CONF, **{
+        "period": 42,
+    })
+
+    @mock.patch("oss_lib.config.process_args")
     @mock.patch("availability.watcher.schedule")
     @mock.patch("availability.watcher.storage")
     @mock.patch("availability.watcher.watch_services")
-    @mock.patch("availability.watcher.config.get_config")
     @mock.patch("availability.watcher.time")
     @mock.patch("availability.watcher.LOG")
-    def test_main(self, mock_log, mock_time, mock_get_config,
-                  mock_watch_services, mock_storage, mock_schedule):
+    def test_main(self, mock_log, mock_time, mock_watch_services, mock_storage,
+                  mock_schedule, mock_process):
         class BreakInfinityCicle(Exception):
             pass
 
         run_effect = [None, None, None, BreakInfinityCicle]
         mock_schedule.run_pending.side_effect = run_effect
 
-        mock_get_config.return_value = {}
+        self.mock_config()
         self.assertEqual(1, watcher.main())
 
-        mock_get_config.return_value = {"regions": []}
-        self.assertEqual(1, watcher.main())
-
-        mock_get_config.return_value = {"regions": ["foo_region"]}
+        self.mock_config(self.BASE_CONF)
         # NOTE(amaretskiy):
         #   SERVICE_CONN_TIMEOUT + SERVICE_READ_TIMEOUT > 10
         self.assertEqual(1, watcher.main(10))
 
-        backend = {"type": "unexpected", "connection": "foo_conn"}
-        mock_get_config.return_value = {"regions": ["foo_region"],
-                                        "backend": backend}
+        self.mock_config(self.UNEXPECTED_BACKEND_CONF)
         self.assertEqual(1, watcher.main())
 
-        backend = {"type": "elastic", "connection": "foo_conn"}
-        mock_get_config.return_value = {"regions": ["foo_region"],
-                                        "backend": backend}
+        self.mock_config(self.ELASTIC_BACKEND_CONF)
         mock_storage.get_elasticsearch.return_value = None
         self.assertEqual(1, watcher.main())
         mock_storage.get_elasticsearch.assert_called_once_with(
@@ -181,8 +209,7 @@ class WatcherTestCase(test.TestCase):
         mock_storage.get_elasticsearch.assert_called_once_with(
             check_availability=True)
 
-        mock_get_config.return_value = {"regions": ["foo_region"],
-                                        "backend": backend, "period": 42}
+        self.mock_config(self.PERIOD_CONF)
         mock_schedule.reset_mock()
         mock_schedule.run_pending.side_effect = run_effect
         mock_time.reset_mock()
